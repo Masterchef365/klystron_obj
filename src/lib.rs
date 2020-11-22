@@ -78,7 +78,12 @@ pub fn lines(obj: &RawObj) -> (Vec<Vertex>, Vec<u16>) {
     todo!()
 }
 
-pub fn wireframe(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
+pub enum QuadMode {
+    Keep,
+    Tessellate,
+}
+
+pub fn wireframe(obj: &RawObj, quad_mode: QuadMode) -> Result<(Vec<Vertex>, Vec<u16>)> {
     let mut line_dedup = HashSet::new();
 
     let mut add_line = |indices: &mut Vec<u16>, a: u16, b: u16| {
@@ -89,25 +94,47 @@ pub fn wireframe(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
         }
     };
 
-    let wire_tri = |indices: &mut Vec<u16>, poly: &[u16]| -> Result<()> {
+    fn quad_check(poly: &[u16]) -> Result<()> {
         if poly.len() < 3 || poly.len() > 4 {
             bail!("Polygon is not a triangle or quad");
         }
-
-        add_line(indices, poly[0], poly[1]);
-        add_line(indices, poly[1], poly[2]);
-        add_line(indices, poly[2], poly[0]);
-
-        if poly.len() == 4 {
-            add_line(indices, poly[0], poly[2]);
-            add_line(indices, poly[2], poly[3]);
-            add_line(indices, poly[3], poly[0]);
-        }
-
         Ok(())
-    };
+    }
 
-    polygon_indices(obj, wire_tri)
+    match quad_mode {
+        QuadMode::Tessellate => {
+            polygon_indices(obj, |indices, poly| -> Result<()> {
+                quad_check(poly)?;
+
+                add_line(indices, poly[0], poly[1]);
+                add_line(indices, poly[1], poly[2]);
+                add_line(indices, poly[2], poly[0]);
+
+                if poly.len() == 4 {
+                    add_line(indices, poly[0], poly[2]);
+                    add_line(indices, poly[2], poly[3]);
+                    add_line(indices, poly[3], poly[0]);
+                }
+
+                Ok(())
+            })
+        }
+        QuadMode::Keep => {
+            polygon_indices(obj, |indices, poly| -> Result<()> {
+                quad_check(poly)?;
+
+                add_line(indices, poly[0], poly[1]);
+                add_line(indices, poly[1], poly[2]);
+
+                if poly.len() == 4 {
+                    add_line(indices, poly[2], poly[3]);
+                    add_line(indices, poly[3], poly[0]);
+                } else {
+                    add_line(indices, poly[2], poly[0]);
+                }
+
+                Ok(())
+            })
+        }
+    }
 }
-
-
