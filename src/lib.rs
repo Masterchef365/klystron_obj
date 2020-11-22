@@ -1,8 +1,8 @@
+use anyhow::{bail, Result};
 use klystron::Vertex;
 use obj::raw::object::Polygon;
 pub use obj::raw::{parse_obj, RawObj};
 use std::collections::HashMap;
-use anyhow::{Result, bail};
 // Special case for quads. Any higher order polygon will throw an error!
 // High-level wrapper, then some lower level functions
 // Don't forget the examples/ !
@@ -33,7 +33,6 @@ fn deref_vertex((p, t): (usize, Option<usize>), obj: &RawObj) -> Vertex {
 
 // Dumb, repeats eery triangle like 3 times
 pub fn mesh(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
-    let mut vert_compressor: HashMap<(usize, Option<usize>), u16> = HashMap::new();
     let mut indices: Vec<u16> = Vec::new();
     let mut vertices: Vec<Vertex> = Vec::new();
     let mut current_polygon_indices = Vec::with_capacity(4); // Enough space for one quad
@@ -43,15 +42,8 @@ pub fn mesh(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
 
         // Deduplicate position/normal index pairs into vertices
         for pair in polygon_vert_norm_pairs(polyon) {
-            let idx = match vert_compressor.get(&pair).copied() {
-                None => {
-                    let idx = vertices.len() as u16;
-                    vertices.push(deref_vertex(pair, obj));
-                    vert_compressor.insert(pair, idx);
-                    idx
-                }, 
-                Some(i) => i,
-            };
+            let idx = vertices.len() as u16;
+            vertices.push(deref_vertex(pair, obj));
             current_polygon_indices.push(idx);
         }
 
@@ -62,7 +54,7 @@ pub fn mesh(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
                 let c = &current_polygon_indices;
                 indices.extend_from_slice(&[c[0], c[1], c[2]]);
                 indices.extend_from_slice(&[c[0], c[2], c[3]]);
-            },
+            }
             _ => bail!("Polygon is not a triangle or quad"),
         }
     }
