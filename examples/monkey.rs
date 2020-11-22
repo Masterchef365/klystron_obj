@@ -31,6 +31,7 @@ impl App for MyApp {
         //let (vertices, indices) = triangles(&parse_obj(file)?)?;
         let (vertices, indices) = wireframe(&parse_obj(file)?, QuadMode::Tessellate)?;
         let mesh = engine.add_mesh(&vertices, &indices)?;
+        dbg!(vertices.len(), indices.len());
 
         Ok(Self {
             mesh,

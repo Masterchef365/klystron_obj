@@ -2,7 +2,7 @@ use anyhow::{bail, Result};
 use klystron::Vertex;
 use obj::raw::object::Polygon;
 pub use obj::raw::{parse_obj, RawObj};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 // Special case for quads. Any higher order polygon will throw an error!
 // High-level wrapper, then some lower level functions
 // Don't forget the examples/ !
@@ -55,14 +55,22 @@ pub fn polygon_indices(
     let mut indices: Vec<u16> = Vec::new();
     let mut vertices: Vec<Vertex> = Vec::new();
     let mut poly = Vec::with_capacity(4); // Enough space for one quad
+    let mut vert_compressor: HashMap<(usize, Option<usize>), u16> = HashMap::new();
 
     for polyon in &obj.polygons {
         poly.clear();
 
         // Deduplicate position/normal index pairs into vertices
         for pair in polygon_vert_norm_pairs(polyon) {
-            let idx = vertices.len() as u16;
-            vertices.push(deref_vertex(pair, obj));
+            let idx = match vert_compressor.get(&pair).copied() {
+                None => {
+                    let idx = vertices.len() as u16;
+                    vertices.push(deref_vertex(pair, obj));
+                    vert_compressor.insert(pair, idx);
+                    idx
+                }, 
+                Some(i) => i,
+            };
             poly.push(idx);
         }
 
