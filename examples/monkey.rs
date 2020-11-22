@@ -1,10 +1,10 @@
 use anyhow::Result;
 use klystron::{
     runtime_3d::{launch, App},
-    DrawType, Engine, FramePacket, Material, Mesh, Object, Vertex, UNLIT_FRAG, UNLIT_VERT,
+    DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT,
 };
 use klystron_obj::{parse_obj, triangles, wireframe, QuadMode};
-use nalgebra::{Matrix4, Point3, Vector3};
+use nalgebra::{Matrix4, Vector3};
 use std::fs::File;
 use std::io::BufReader;
 
@@ -55,8 +55,6 @@ impl App for MyApp {
             material: tri_material,
         };
 
-        dbg!(vertices.len(), indices.len());
-
         Ok(Self {
             quad_wires,
             tess_wires,
@@ -66,14 +64,17 @@ impl App for MyApp {
     }
 
     fn next_frame(&mut self, engine: &mut dyn Engine) -> Result<FramePacket> {
+        // Update positions
         let rotate = Matrix4::from_euler_angles(0.0, self.time, 0.0);
         let spacing = Vector3::new(3., 0., 0.);
         self.tris.transform = Matrix4::new_translation(&spacing) * rotate;
         self.quad_wires.transform = rotate;
         self.tess_wires.transform = Matrix4::new_translation(&-spacing) * rotate;
 
+        // Update time 
         engine.update_time_value(self.time)?;
         self.time += 0.01;
+
         Ok(FramePacket {
             objects: vec![
                 self.tris,
