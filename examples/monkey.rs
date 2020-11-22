@@ -5,7 +5,7 @@ use klystron::{
     UNLIT_FRAG, UNLIT_VERT,
 };
 use nalgebra::{Matrix4, Point3};
-use klystron_obj::{parse_obj, triangles};
+use klystron_obj::{parse_obj, triangles, wireframe};
 use std::fs::File;
 use std::io::BufReader;
 
@@ -24,11 +24,12 @@ impl App for MyApp {
         let material = engine.add_material(
             UNLIT_VERT,
             UNLIT_FRAG,
-            DrawType::Triangles,
+            DrawType::Lines,
         )?;
 
         let file = BufReader::new(File::open("./examples/monkey.obj")?);
-        let (vertices, indices) = triangles(&parse_obj(file)?)?;
+        //let (vertices, indices) = triangles(&parse_obj(file)?)?;
+        let (vertices, indices) = wireframe(&parse_obj(file)?)?;
         let mesh = engine.add_mesh(&vertices, &indices)?;
 
         Ok(Self {
