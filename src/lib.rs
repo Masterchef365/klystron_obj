@@ -31,8 +31,28 @@ fn deref_vertex((p, t): (usize, Option<usize>), obj: &RawObj) -> Vertex {
     }
 }
 
+pub fn triangles(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
+    pub fn poly_triangles(indices: &mut Vec<u16>, current_polygon_indices: &[u16]) -> Result<()> {
+        match current_polygon_indices.len() {
+            3 => Ok(indices.extend(current_polygon_indices.iter().copied())),
+            4 => {
+                let c = &current_polygon_indices;
+                indices.extend_from_slice(&[c[0], c[1], c[2]]);
+                indices.extend_from_slice(&[c[0], c[2], c[3]]);
+                Ok(())
+            }
+            _ => bail!("Polygon is not a triangle or quad"),
+        }
+    }
+
+    gen_mesh(obj, poly_triangles)
+}
+
 // Dumb, repeats eery triangle like 3 times
-pub fn mesh(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
+pub fn gen_mesh(
+    obj: &RawObj,
+    mut f: impl FnMut(&mut Vec<u16>, &[u16]) -> Result<()>,
+) -> Result<(Vec<Vertex>, Vec<u16>)> {
     let mut indices: Vec<u16> = Vec::new();
     let mut vertices: Vec<Vertex> = Vec::new();
     let mut current_polygon_indices = Vec::with_capacity(4); // Enough space for one quad
@@ -47,16 +67,8 @@ pub fn mesh(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
             current_polygon_indices.push(idx);
         }
 
+        f(&mut indices, &current_polygon_indices)?;
         // Special cases for quads and triangles
-        match current_polygon_indices.len() {
-            3 => indices.append(&mut current_polygon_indices),
-            4 => {
-                let c = &current_polygon_indices;
-                indices.extend_from_slice(&[c[0], c[1], c[2]]);
-                indices.extend_from_slice(&[c[0], c[2], c[3]]);
-            }
-            _ => bail!("Polygon is not a triangle or quad"),
-        }
     }
 
     Ok((vertices, indices))
@@ -64,6 +76,8 @@ pub fn mesh(obj: &RawObj) -> Result<(Vec<Vertex>, Vec<u16>)> {
 
 /// Actual lines represented in the OBJ
 pub fn lines(obj: &RawObj) -> (Vec<Vertex>, Vec<u16>) {
+    let mut indices: Vec<u16> = Vec::new();
+    let mut vertices: Vec<Vertex> = Vec::new();
     todo!()
 }
 
