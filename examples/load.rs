@@ -5,12 +5,10 @@ use klystron::{
 };
 use klystron_obj::{parse_obj, triangles, wireframe, QuadMode};
 use nalgebra::{Matrix4, Vector3};
-use std::fs::File;
+use std::fs::{File, read};
 use std::io::BufReader;
 
 struct MyApp {
-    quad_wires: Object,
-    tess_wires: Object,
     tris: Object,
     time: f32,
 }
@@ -24,8 +22,6 @@ impl App for MyApp {
         let file = BufReader::new(File::open(obj_path)?);
         let obj = parse_obj(file).context("Error parsing OBJ")?;
 
-        let line_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Lines)?;
-
         // Read important image data
         let img = png::Decoder::new(File::open(texture_path)?);
         let (info, mut reader) = img.read_info()?;
@@ -36,30 +32,14 @@ impl App for MyApp {
         reader.next_frame(&mut img_buffer)?;
         let texture = engine.add_texture(&img_buffer, info.width)?;
 
-        // Tessellated wires
-        let (vertices, indices) = wireframe(&obj, QuadMode::Tessellate)?;
-        let mesh = engine.add_mesh(&vertices, &indices)?;
-        let tess_wires = Object {
-            transform: Matrix4::identity(),
-            mesh,
-            material: line_material,
-            texture,
-        };
-
-        // Quad wires
-        let (vertices, indices) = wireframe(&obj, QuadMode::Keep)?;
-        let mesh = engine.add_mesh(&vertices, &indices)?;
-        let quad_wires = Object {
-            transform: Matrix4::identity(),
-            mesh,
-            material: line_material,
-            texture,
-        };
-
         // Triangles
         let (vertices, indices) = triangles(&obj)?;
         let mesh = engine.add_mesh(&vertices, &indices)?;
-        let tri_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Triangles)?;
+        let tri_material = engine.add_material(
+            &read("./shaders/unlit.vert.spv")?, 
+            &read("./shaders/unlit.frag.spv")?, 
+            DrawType::Triangles
+        )?;
         let tris = Object {
             transform: Matrix4::identity(),
             mesh,
@@ -68,8 +48,6 @@ impl App for MyApp {
         };
 
         Ok(Self {
-            quad_wires,
-            tess_wires,
             tris,
             time: 0.0,
         })
@@ -78,17 +56,14 @@ impl App for MyApp {
     fn next_frame(&mut self, engine: &mut dyn Engine) -> Result<FramePacket> {
         // Update positions
         let rotate = Matrix4::from_euler_angles(0.0, self.time, 0.0);
-        let spacing = Vector3::new(3., 0., 0.);
-        self.tris.transform = Matrix4::new_translation(&spacing) * rotate;
-        self.quad_wires.transform = rotate;
-        self.tess_wires.transform = Matrix4::new_translation(&-spacing) * rotate;
+        self.tris.transform = rotate;
 
         // Update time
         engine.update_time_value(self.time)?;
         self.time += 0.01;
 
         Ok(FramePacket {
-            objects: vec![self.tris, self.quad_wires, self.tess_wires],
+            objects: vec![self.tris],
         })
     }
 }
