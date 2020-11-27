@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use klystron::{
     runtime_3d::{launch, App},
     DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT,
@@ -18,12 +18,11 @@ struct MyApp {
 impl App for MyApp {
     const NAME: &'static str = "MyApp";
 
-    type Args = ();
+    type Args = String;
 
-    fn new(engine: &mut dyn Engine, _args: Self::Args) -> Result<Self> {
-
-        let file = BufReader::new(File::open("./examples/monkey.obj")?);
-        let obj = parse_obj(file)?;
+    fn new(engine: &mut dyn Engine, obj_path: Self::Args) -> Result<Self> {
+        let file = BufReader::new(File::open(obj_path)?);
+        let obj = parse_obj(file).context("Error parsing OBJ")?;
 
         let line_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Lines)?;
 
@@ -86,6 +85,8 @@ impl App for MyApp {
 }
 
 fn main() -> Result<()> {
-    let vr = std::env::args().skip(1).next().is_some();
-    launch::<MyApp>(vr, ())
+    let mut args = std::env::args().skip(1);
+    let obj_path = args.next().context("Requires OBJ path.")?;
+    let vr = args.next().is_some();
+    launch::<MyApp>(vr, obj_path)
 }
