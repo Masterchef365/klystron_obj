@@ -144,6 +144,6 @@ fn deref_vertex((p, t): (usize, Option<usize>), obj: &RawObj) -> Vertex {
     let (x, y, z, _) = obj.positions[p];
     Vertex {
         pos: [x, y, z],
-        color: [u, v, w],
+        color: [u, -v, w],
     }
 }
