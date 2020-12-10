@@ -15,4 +15,5 @@ void main() {
     vec2 uv = fragColor.xy;
     //uv.x += cos(anim * 10. + uv.y * 50.) * .2;
     outColor = texture(tex, uv);
+    //outColor = vec4(uv, 0., 0.);
 }

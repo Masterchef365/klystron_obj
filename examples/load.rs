@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use klystron::{
     runtime_3d::{launch, App},
-    DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT,
+    DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT, Sampling,
 };
 use klystron_obj::{parse_obj, triangles, wireframe, QuadMode};
 use nalgebra::{Matrix4, Vector3};
@@ -25,12 +25,12 @@ impl App for MyApp {
         // Read important image data
         let img = png::Decoder::new(File::open(texture_path)?);
         let (info, mut reader) = img.read_info()?;
-        assert!(info.color_type == png::ColorType::RGB);
+        assert!(info.color_type == png::ColorType::RGBA);
         assert!(info.bit_depth == png::BitDepth::Eight);
         let mut img_buffer = vec![0; info.buffer_size()];
-        assert_eq!(info.buffer_size(), (info.width * info.height * 3) as _);
+        assert_eq!(info.buffer_size(), (info.width * info.height * 4) as _);
         reader.next_frame(&mut img_buffer)?;
-        let texture = engine.add_texture(&img_buffer, info.width)?;
+        let texture = engine.add_texture(&img_buffer, info.width, Sampling::Nearest)?;
 
         // Triangles
         let (vertices, indices) = triangles(&obj)?;
