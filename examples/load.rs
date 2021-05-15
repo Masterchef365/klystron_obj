@@ -3,7 +3,7 @@ use klystron::{
     runtime_3d::{launch, App},
     DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT,
 };
-use klystron_obj::{parse_obj, triangles, wireframe, QuadMode};
+use klystron_obj::{parse_obj, triangles, wireframe, ColorMode, QuadMode};
 use nalgebra::{Matrix4, Vector3};
 use std::fs::File;
 use std::io::BufReader;
@@ -27,7 +27,7 @@ impl App for MyApp {
         let line_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Lines)?;
 
         // Tessellated wires
-        let (vertices, indices) = wireframe(&obj, QuadMode::Tessellate)?;
+        let (vertices, indices) = wireframe(&obj, ColorMode::Uv, QuadMode::Tessellate)?;
         let mesh = engine.add_mesh(&vertices, &indices)?;
         let tess_wires = Object {
             transform: Matrix4::identity(),
@@ -36,7 +36,7 @@ impl App for MyApp {
         };
 
         // Quad wires
-        let (vertices, indices) = wireframe(&obj, QuadMode::Keep)?;
+        let (vertices, indices) = wireframe(&obj, ColorMode::Uv, QuadMode::Keep)?;
         let mesh = engine.add_mesh(&vertices, &indices)?;
         let quad_wires = Object {
             transform: Matrix4::identity(),
@@ -45,7 +45,7 @@ impl App for MyApp {
         };
 
         // Triangles
-        let (vertices, indices) = triangles(&obj)?;
+        let (vertices, indices) = triangles(&obj, ColorMode::Uv)?;
         let mesh = engine.add_mesh(&vertices, &indices)?;
         let tri_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Triangles)?;
         let tris = Object {
