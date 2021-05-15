@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use klystron::Vertex;
 use obj::raw::object::Polygon;
 pub use obj::raw::{parse_obj, RawObj};
@@ -48,17 +48,8 @@ pub fn wireframe(obj: &RawObj, color_mode: ColorMode, quad_mode: QuadMode) -> Re
         }
     };
 
-    fn quad_check(_poly: &[u16]) -> Result<()> {
-        //if poly.len() < 3 || poly.len() > 4 {
-            //bail!("Polygon is not a triangle or quad");
-        //}
-        Ok(())
-    }
-
     match quad_mode {
         QuadMode::Tessellate => polygon_indices(obj, color_mode, |indices, poly| -> Result<()> {
-            quad_check(poly)?;
-
             add_line(indices, poly[0], poly[1]);
             add_line(indices, poly[1], poly[2]);
             add_line(indices, poly[2], poly[0]);
@@ -72,8 +63,6 @@ pub fn wireframe(obj: &RawObj, color_mode: ColorMode, quad_mode: QuadMode) -> Re
             Ok(())
         }),
         QuadMode::Keep => polygon_indices(obj, color_mode, |indices, poly| -> Result<()> {
-            quad_check(poly)?;
-
             add_line(indices, poly[0], poly[1]);
             add_line(indices, poly[1], poly[2]);
 
@@ -88,12 +77,6 @@ pub fn wireframe(obj: &RawObj, color_mode: ColorMode, quad_mode: QuadMode) -> Re
         }),
     }
 }
-
-/*
-pub fn lines(obj: &RawObj) -> (Vec<Vertex>, Vec<u16>) {
-    todo!()
-}
-*/
 
 /// Generate indices, memoizing vertices and using the specified functino `f` to generate
 /// output indices according to a rule (wireframe, triangles, quads)

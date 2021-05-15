@@ -12,3 +12,6 @@ klystron = { path = "../klystron" }
 obj-rs = "0.6"
 anyhow = "1"
 nalgebra = "0.25"
+
+[dev-dependencies]
+png = "0.16"

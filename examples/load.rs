@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use klystron::{
     runtime_3d::{launch, App},
-    DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT,
+    DrawType, Engine, FramePacket, Object, UNLIT_FRAG, UNLIT_VERT, Sampling,
 };
 use klystron_obj::{parse_obj, triangles, wireframe, ColorMode, QuadMode};
 use nalgebra::{Matrix4, Vector3};
@@ -18,11 +18,22 @@ struct MyApp {
 impl App for MyApp {
     const NAME: &'static str = "MyApp";
 
-    type Args = String;
+    type Args = (String, String);
 
-    fn new(engine: &mut dyn Engine, obj_path: Self::Args) -> Result<Self> {
+    fn new(engine: &mut dyn Engine, (obj_path, png_path): Self::Args) -> Result<Self> {
         let file = BufReader::new(File::open(obj_path)?);
         let obj = parse_obj(file).context("Error parsing OBJ")?;
+
+        // Read important image data
+        let img = png::Decoder::new(File::open(png_path)?);
+        let (info, mut reader) = img.read_info()?;
+        assert!(info.color_type == png::ColorType::RGBA);
+        assert!(info.bit_depth == png::BitDepth::Eight);
+        let mut img_buffer = vec![0; info.buffer_size()];
+        assert_eq!(info.buffer_size(), (info.width * info.height * 4) as _);
+        reader.next_frame(&mut img_buffer)?;
+
+        let texture = engine.add_texture(&img_buffer, info.width, Sampling::Linear)?;
 
         let line_material = engine.add_material(UNLIT_VERT, UNLIT_FRAG, DrawType::Lines)?;
 
@@ -33,6 +44,7 @@ impl App for MyApp {
             transform: Matrix4::identity(),
             mesh,
             material: line_material,
+            texture,
         };
 
         // Quad wires
@@ -42,6 +54,7 @@ impl App for MyApp {
             transform: Matrix4::identity(),
             mesh,
             material: line_material,
+            texture,
         };
 
         // Triangles
@@ -52,6 +65,7 @@ impl App for MyApp {
             transform: Matrix4::identity(),
             mesh,
             material: tri_material,
+            texture,
         };
 
         Ok(Self {
@@ -87,6 +101,7 @@ impl App for MyApp {
 fn main() -> Result<()> {
     let mut args = std::env::args().skip(1);
     let obj_path = args.next().context("Requires OBJ path.")?;
+    let png_path = args.next().context("Requires PNG path.")?;
     let vr = args.next().is_some();
-    launch::<MyApp>(vr, obj_path)
+    launch::<MyApp>(vr, (obj_path, png_path))
 }
